@@ -41,7 +41,7 @@ void writeToOutput(char *message, int numOfPrints) {
     fclose(file);
 }
 
-int createFork(char *parentM[], char *chlid1M [], char *child2M[], int count) {
+int createFork(char *parentM, char *chlid1M, char *child2M, int count) {
     // create 2 kids
     pid_t pid_child_1, pid_child_2;
 
