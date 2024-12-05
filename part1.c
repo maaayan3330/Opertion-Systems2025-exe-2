@@ -28,6 +28,47 @@ char *keepMessage(char *arguments[], int index) {
     return message;
 }
 
+int createFork(char *parentM[], char *chlid1M [], char *child2M[], int count) {
+    // create 2 kids
+    pid_t pid_child_1, pid_child_2;
+
+    // create the first child
+    if((pid_child_1=fork()) < 0) {
+        perror("faild fork child 1");
+        return 1;
+    }
+
+    if(pid_child_1==0) {
+        // make sure that the seoned child will create also
+        sleep(1);
+        // write to the file 
+        for (int i = 0; i < count; i++){
+            
+        }
+        
+
+        exit(1);
+    }
+
+    // create the seconed child
+    if((pid_child_2=fork()) < 0) {
+        perror("faild fork child 2");
+        return 1;
+    }
+
+    if(pid_child_2==0) {
+        // make sure that the seoned child will create also
+        sleep(1);
+        // print
+
+        exit(1);
+    }
+
+    // the parent will wait untill the childs will finish
+
+
+
+}
 
 int main(int argc, char *argv[]) {
     // check input
@@ -49,7 +90,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    
+    // create a file
+    FILE *file = fopen("output.txt", "w"); 
+    if (file == NULL) {
+        perror("Failed to create file"); 
+        return 1;
+    }
+
+    // close file
+    fclose(file);
+
     // free memory
     free(parent_message);
     free(child1_message);
