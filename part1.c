@@ -28,6 +28,19 @@ char *keepMessage(char *arguments[], int index) {
     return message;
 }
 
+void writeToOutput(char *message, int numOfPrints) {
+    // create a file
+    FILE *file = fopen("output.txt", "a"); 
+    if (file == NULL) {
+        perror("Failed to create file"); 
+        return;
+    }
+     for (int i = 0; i < numOfPrints; i++) {
+        fprintf(file, "%s\n", message);
+    }
+    fclose(file);
+}
+
 int createFork(char *parentM[], char *chlid1M [], char *child2M[], int count) {
     // create 2 kids
     pid_t pid_child_1, pid_child_2;
@@ -42,12 +55,8 @@ int createFork(char *parentM[], char *chlid1M [], char *child2M[], int count) {
         // make sure that the seoned child will create also
         sleep(1);
         // write to the file 
-        for (int i = 0; i < count; i++){
-            
-        }
-        
-
-        exit(1);
+        writeToOutput(chlid1M, count);
+        exit(0);
     }
 
     // create the seconed child
@@ -59,15 +68,24 @@ int createFork(char *parentM[], char *chlid1M [], char *child2M[], int count) {
     if(pid_child_2==0) {
         // make sure that the seoned child will create also
         sleep(1);
-        // print
-
-        exit(1);
+        // write to the file
+        writeToOutput(child2M, count);
+        exit(0);
     }
 
     // the parent will wait untill the childs will finish
-
-
-
+    int status;
+    pid_t finished_pid;
+    for (int i = 0; i < 2; i++) {
+        finished_pid = wait(&status); 
+        if (finished_pid == -1) {
+            perror("Wait failed");
+            return 1;
+        }
+    }
+    // the childrens finish we will print the parent
+    writeToOutput(parentM, count);
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -90,15 +108,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // create a file
-    FILE *file = fopen("output.txt", "w"); 
-    if (file == NULL) {
-        perror("Failed to create file"); 
+   if (createFork(parent_message, child1_message, child2_message, count) != 0) {
+        free(parent_message);
+        free(child1_message);
+        free(child2_message);
         return 1;
     }
-
-    // close file
-    fclose(file);
 
     // free memory
     free(parent_message);
