@@ -4,35 +4,53 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <string.h>
+
+
+int checkInput(int numOfArgu, char *arguments[]) {
+    // to check we got 4 argu 
+    if (numOfArgu != 5) {
+        fprintf(stderr, "Usage: %s <parent_message> <child1_message> <child2_message> <count>", arguments[0]);
+        return 1;
+    }
+    return 0;
+}
+
+char *keepMessage(char *arguments[], int index) {
+    // keep the data that pass in the comeend line- make place
+    char *message = (char *)malloc(strlen(arguments[index]) + 1);
+    // memory check
+    if (message == NULL) {
+        perror("Memory allocation failed");
+        return NULL;
+    }
+    strcpy(message, arguments[index]); 
+    return message;
+}
+
 
 int main(int argc, char *argv[]) {
-    // to check we got 4 argu 
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <parent_message> <child1_message> <child2_message> <count>", argv[0]);
-        return 1;
+    // check input
+    if (checkInput(argc, argv)) {
+        return 1; 
     }
 
-    // keep the data that pass in the comeend line- make place
-    char *parent_message = (char *)malloc(strlen(argv[1]) + 1); 
-    char *child1_message= (char *)malloc(strlen(argv[2]) + 1);
-    char *child2_message = (char *)malloc(strlen(argv[3]) + 1);
+    // keep the messeges
+    char *parent_message = keepMessage(argv, 1);
+    char *child1_message = keepMessage(argv, 2);
+    char *child2_message = keepMessage(argv, 3);
     int count = atoi(argv[4]);
 
-    // memory check
+    // check it is not failed
     if (parent_message == NULL || child1_message == NULL || child2_message == NULL) {
-        perror("memory faild");
+        free(parent_message);
+        free(child1_message);
+        free(child2_message);
         return 1;
     }
 
-    // copy the data
-    strcpy(parent_message, argv[1]);
-    strcpy(child1_message, argv[2]);
-    strcpy(child2_message, argv[3]);
-
-
-
-
     
+    // free memory
     free(parent_message);
     free(child1_message);
     free(child2_message);
