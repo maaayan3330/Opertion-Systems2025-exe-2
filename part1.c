@@ -67,7 +67,7 @@ int createFork(char *parentM, char *chlid1M, char *child2M, int count) {
 
     if(pid_child_2==0) {
         // make sure that the seoned child will create also
-        sleep(1);
+        sleep(2);
         // write to the file
         writeToOutput(child2M, count);
         exit(0);
