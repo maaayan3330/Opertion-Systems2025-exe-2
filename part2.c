@@ -1,3 +1,4 @@
+// maayan ifergan 212437453
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,22 +8,22 @@
 #include <errno.h>
 #include <string.h>
 
-// פונקציית כתיבה שאינה משתנה
+// write function - that been provieded
 void write_message(const char *message, int count) {
     for (int i = 0; i < count; i++) {
         printf("%s\n", message);
-        usleep((rand() % 100) * 1000); // עיכוב רנדומלי
+        usleep((rand() % 100) * 1000); // Random delay between 0 and 99 milliseconds
     }
 }
 
-// פונקציות לניהול נעילה
+// function 
 int acquire_lock(const char *lockfile) {
     while (open(lockfile, O_CREAT | O_EXCL, 0644) == -1) {
         if (errno != EEXIST) {
             perror("Failed to acquire lock");
             return -1;
         }
-        usleep(1000); // ממתין לפני ניסיון נוסף
+        usleep(100000); // ממתין לפני ניסיון נוסף
     }
     return 0;
 }

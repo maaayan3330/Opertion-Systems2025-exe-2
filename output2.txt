@@ -4,16 +4,6 @@ First message
 First message
 First message
 First message
-bro
-bro
-bro
-bro
-bro
-bro
-bro
-Second message
-Second message
-Second message
 First message
 Third message
 Third message
@@ -26,6 +16,16 @@ Second message
 Second message
 Second message
 Second message
+Second message
+Second message
+Second message
+bro
+bro
+bro
+bro
+bro
+bro
+bro
 hiiii
 hiiii
 hiiii
