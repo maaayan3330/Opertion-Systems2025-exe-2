@@ -43,7 +43,7 @@ int acquire_lock(const char *lockfile) {
             perror("Failed to acquire lock");
             return -1;
         }
-        usleep(1000); // Wait before retrying
+        usleep(100000); // Wait before retrying
     }
     return 0;
 }
@@ -55,16 +55,15 @@ void release_lock(const char *lockfile) {
 }
 
 int main(int argc, char *argv[]) {
-
-    // check input
+    // Check input
     if (checkInput(argc, argv)) {
-        return 1; 
+        return 1;
     }
 
-    // get the count
-    int count = atoi(argv[argc - 1]); 
+    // Get the count
+    int count = atoi(argv[argc - 1]);
 
-    // keep the all messages - create a array of strings
+    // Keep all messages - create an array of strings
     int numMessages = argc - 2;
     char **messages = (char **)malloc(numMessages * sizeof(char *));
     if (messages == NULL) {
@@ -72,11 +71,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // keep the messges
     for (int i = 1; i <= numMessages; i++) {
         messages[i - 1] = keepMessage(argv, i);
         if (messages[i - 1] == NULL) {
-            // free memory
             for (int j = 0; j < i - 1; j++) {
                 free(messages[j]);
             }
@@ -85,10 +82,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // start with the lock file 
+    // Start with the lock file
     const char *lockfile = "lockfile.lock";
 
-    // Create output file
+    // Open output file in the parent process
     FILE *output = fopen("output2.txt", "w");
     if (output == NULL) {
         perror("Failed to open output file");
@@ -98,25 +95,12 @@ int main(int argc, char *argv[]) {
         free(messages);
         return 1;
     }
-
-    // Fork child processes
-    pid_t *pids = malloc(numMessages * sizeof(pid_t));
-    if (pids == NULL) {
-        perror("malloc");
-        fclose(output);
-        for (int i = 0; i < numMessages; i++) {
-            free(messages[i]);
-        }
-        free(messages);
-        return 1;
-    }
+    fclose(output); // Close here; child processes will reopen as needed.
 
     for (int i = 0; i < numMessages; i++) {
-        pids[i] = fork();
-        if (pids[i] == -1) {
+        pid_t pid = fork();
+        if (pid == -1) {
             perror("fork");
-            free(pids);
-            fclose(output);
             for (int j = 0; j < numMessages; j++) {
                 free(messages[j]);
             }
@@ -124,38 +108,47 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        if (pids[i] == 0) {
+        if (pid == 0) {
             // Child process
             srand(getpid());
+
             for (int j = 0; j < count; j++) {
                 if (acquire_lock(lockfile) == -1) {
                     exit(1);
                 }
 
-                fprintf(output, "%s\n", messages[i]);
-                fflush(output);
+                // Reopen the output file in append mode
+                FILE *child_output = fopen("output2.txt", "a");
+                if (child_output == NULL) {
+                    perror("Failed to open output file in child");
+                    release_lock(lockfile);
+                    exit(1);
+                }
+
+                fprintf(child_output, "%s\n", messages[i]);
+                fflush(child_output); // Ensure immediate flush
+                fclose(child_output); // Close after each write
 
                 release_lock(lockfile);
             }
+
+            // Free memory and exit child process
             for (int j = 0; j < numMessages; j++) {
                 free(messages[j]);
             }
             free(messages);
-            fclose(output);
             exit(0);
+        } else {
+            // Parent process waits for the current child to finish
+            waitpid(pid, NULL, 0);
         }
     }
 
-    // Parent process
-    for (int i = 0; i < numMessages; i++) {
-        waitpid(pids[i], NULL, 0);
-    }
-
     // Cleanup
-    free(pids);
-    fclose(output);
     for (int i = 0; i < numMessages; i++) {
         free(messages[i]);
     }
     free(messages);
+
+    return 0;
 }
