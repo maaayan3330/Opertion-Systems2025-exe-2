@@ -16,40 +16,49 @@ void write_message(const char *message, int count) {
     }
 }
 
-// function 
+// function to ask for the lockfile
 int acquire_lock(const char *lockfile) {
     while (open(lockfile, O_CREAT | O_EXCL, 0644) == -1) {
         if (errno != EEXIST) {
             perror("Failed to acquire lock");
             return -1;
         }
-        usleep(100000); // ממתין לפני ניסיון נוסף
+        // wait for another try
+        usleep(100000); 
     }
     return 0;
 }
 
+// to let go the lockfile
 void release_lock(const char *lockfile) {
     if (unlink(lockfile) == -1) {
         perror("Failed to release lock");
+        exit(EXIT_FAILURE);
     }
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 4) {
-        fprintf(stderr, "Usage: %s <message1> <message2> ... <count>\n", argv[0]);
-        return 1;
+    // consition
+    if (argc <= 4) {
+    fprintf(stderr, "Usage: %s <message1> <message2> ... <count>", argv[0]);
+    return 1;
     }
 
-    int count = atoi(argv[argc - 1]); // מספר החזרות לכל הודעה
-    int numMessages = argc - 2; // מספר ההודעות
-    const char *lockfile = "lockfile.lock"; // קובץ לניהול נעילה
+    // keep the num for the num of messeges
+    int count = atoi(argv[argc - 1]); 
+    // without the count and the first
+    int numMessages = argc - 2; 
+    // name of file
+    const char *lockfile = "lockfile.lock"; 
 
-    // שמירת ההודעות
+    // keep the all difrrent messeges
     char **messages = (char **)malloc(numMessages * sizeof(char *));
     if (messages == NULL) {
         perror("Memory allocation");
         return 1;
     }
+
+    // coopy the messges
     for (int i = 0; i < numMessages; i++) {
         messages[i] = strdup(argv[i + 1]);
         if (messages[i] == NULL) {
@@ -62,7 +71,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // יצירת תהליכים
+    // create forks
     pid_t *pids = malloc(numMessages * sizeof(pid_t));
     if (pids == NULL) {
         perror("Memory allocation");
@@ -86,20 +95,18 @@ int main(int argc, char *argv[]) {
         }
 
         if (pids[i] == 0) {
-            // תהליך ילד
-            srand(getpid()); // איתחול הרנדומליות עבור הילד
+            // child process
+            srand(getpid());
             for (int j = 0; j < count; j++) {
                 if (acquire_lock(lockfile) == -1) {
                     exit(1);
                 }
-
-                // קריאה לפונקציית הכתיבה המקורית
+                // write the messeges
                 write_message(messages[i], 1);
-
-                release_lock(lockfile); // שחרור הנעילה
+                // free the lock
+                release_lock(lockfile); 
             }
 
-            // ניקוי זיכרון בתהליך הילד
             for (int j = 0; j < numMessages; j++) {
                 free(messages[j]);
             }
@@ -109,12 +116,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // תהליך האב ממתין לילדים
+    // the parent wait
     for (int i = 0; i < numMessages; i++) {
         waitpid(pids[i], NULL, 0);
     }
 
-    // ניקוי זיכרון בתהליך האב
+    // free
     for (int i = 0; i < numMessages; i++) {
         free(messages[i]);
     }
