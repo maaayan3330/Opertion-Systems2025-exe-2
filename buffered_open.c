@@ -8,15 +8,18 @@
 int buffered_flush(buffered_file_t *bf) {
     if (!bf) return -1;
 
+    // Check if there is data in the write buffer to be flushed
     if (bf->write_buffer_pos > 0) {
         if (bf->preappend) {
             // Handle O_PREAPPEND: Read existing content, prepend new data, and write back
             off_t file_size = lseek(bf->fd, 0, SEEK_END);
             if (file_size == -1) return -1;
 
+            // Reset file pointer to the start
             char *temp_buffer = (char *)malloc(file_size);
             if (!temp_buffer) return -1;
 
+            // Reset file pointer to the start again
             if (lseek(bf->fd, 0, SEEK_SET) == -1) {
                 free(temp_buffer);
                 return -1;
@@ -37,6 +40,7 @@ int buffered_flush(buffered_file_t *bf) {
                 return -1;
             }
 
+            // Append the old content after the new data
             if (write(bf->fd, temp_buffer, file_size) == -1) {
                 free(temp_buffer);
                 return -1;
@@ -44,6 +48,7 @@ int buffered_flush(buffered_file_t *bf) {
 
             free(temp_buffer);
         } else {
+            // If not preappend, flush the buffer directly to the file
             if (write(bf->fd, bf->write_buffer, bf->write_buffer_pos) == -1) return -1;
         }
 
@@ -55,13 +60,14 @@ int buffered_flush(buffered_file_t *bf) {
 
 // Closes the buffered file
 int buffered_close(buffered_file_t *bf) {
+    // Check if the buffered file is valid
     if (!bf) return -1;
 
     if (buffered_flush(bf) == -1) return -1;
 
     free(bf->read_buffer);
     free(bf->write_buffer);
-
+    // Close the file descriptor
     int result = close(bf->fd);
     free(bf);
     return result;
@@ -71,6 +77,7 @@ int buffered_close(buffered_file_t *bf) {
 ssize_t buffered_read(buffered_file_t *bf, void *buf, size_t count) {
     if (!bf || !buf) return -1;
 
+    // Track the number of bytes read
     size_t bytes_read = 0;
     char *output = (char *)buf;
 
@@ -81,7 +88,7 @@ ssize_t buffered_read(buffered_file_t *bf, void *buf, size_t count) {
             if (bf->read_buffer_size == 0) break; // EOF
             bf->read_buffer_pos = 0;
         }
-
+        // Calculate available bytes to copy
         size_t to_copy = bf->read_buffer_size - bf->read_buffer_pos;
         if (to_copy > count - bytes_read) to_copy = count - bytes_read;
 
@@ -95,9 +102,11 @@ ssize_t buffered_read(buffered_file_t *bf, void *buf, size_t count) {
 
 // Writes to the buffered file
 ssize_t buffered_write(buffered_file_t *bf, const void *buf, size_t count) {
+     // Check for valid input arguments
     if (!bf || !buf) return -1;
 
     size_t bytes_written = 0;
+    // Cast the input buffer to a char pointer
     const char *input = (const char *)buf;
 
     while (bytes_written < count) {
@@ -107,11 +116,13 @@ ssize_t buffered_write(buffered_file_t *bf, const void *buf, size_t count) {
             space_left = BUFFER_SIZE;
         }
 
+        // Calculate bytes remaining to be written
         size_t to_copy = count - bytes_written;
         if (to_copy > space_left) to_copy = space_left;
 
         memcpy(bf->write_buffer + bf->write_buffer_pos, input + bytes_written, to_copy);
         bf->write_buffer_pos += to_copy;
+        // Update total bytes written
         bytes_written += to_copy;
     }
 
@@ -121,6 +132,7 @@ ssize_t buffered_write(buffered_file_t *bf, const void *buf, size_t count) {
 // Opens a buffered file
 buffered_file_t *buffered_open(const char *pathname, int flags, ...) {
     int mode = 0;
+    // If O_CREAT is used, retrieve the mode argument
     if (flags & O_CREAT) {
         va_list args;
         va_start(args, flags);
@@ -134,6 +146,7 @@ buffered_file_t *buffered_open(const char *pathname, int flags, ...) {
     bf->preappend = flags & O_PREAPPEND;
     flags &= ~O_PREAPPEND;
 
+    // Open the file with the specified flags and mode
     bf->fd = open(pathname, flags, mode);
     if (bf->fd == -1) {
         free(bf);
